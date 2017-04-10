@@ -143,10 +143,10 @@ def _train_step(env, time_step,
 
 ## Debug
 def debug(env, time_step):
-    s = _train_step(env, time_step, debug=True)
+    s, r = _train_step(env, time_step, debug=True)
     while s is not None:
         time_step += 1
-        s = _train_step(env, time_step, s=s, debug=True)
+        s, r = _train_step(env, time_step, reward=r, s=s, debug=True)
 
     print(test())
     return time_step
