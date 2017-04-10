@@ -16,7 +16,7 @@ matplotlib.use('AGG')
 import matplotlib.pyplot as plt
 import numpy as np
 
-NUM_EPOCHS = 10000
+NUM_EPOCHS = 30000
 DISCOUNT_FACTOR = 0.9
 GPU = True
 LOAD_NET = False
@@ -130,7 +130,7 @@ def _train_step(env, time_step,
         predicted_q = net(s)
         best_q = predicted_q.max(1)[0]
         if r > 499.0: # end game reached
-            r = np_to_var([0])
+            r = np_to_var([10])
         else:
             r = np_to_var([-reward*0.5-10]) # Hardcode the loss here
         if debug:
