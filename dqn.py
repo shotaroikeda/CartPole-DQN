@@ -16,7 +16,7 @@ matplotlib.use('AGG')
 import matplotlib.pyplot as plt
 import numpy as np
 
-NUM_EPOCHS = 100000
+NUM_EPOCHS = 10000
 DISCOUNT_FACTOR = 0.9
 GPU = True
 LOAD_NET = False
@@ -129,7 +129,10 @@ def _train_step(env, time_step,
     else:
         predicted_q = net(s)
         best_q = predicted_q.max(1)[0]
-        r = np_to_var([-reward*0.5-10]) # Hardcode the loss here
+        if r > 499.0: # end game reached
+            r = np_to_var([0])
+        else:
+            r = np_to_var([-reward*0.5-10]) # Hardcode the loss here
         if debug:
             print("Predicted: %s Actual: %s" % (best_q, r))
         loss = F.smooth_l1_loss(best_q, r)
@@ -153,7 +156,7 @@ def debug(env, time_step):
 
 ## Randomized Agent
 # Plot the scores the agent gets
-pts = np.zeros(NUM_EPOCHS // 100)
+pts = np.zeros(NUM_EPOCHS // 500)
 s = None
 for i in xrange(NUM_EPOCHS):
     s, reward = _train_step(env, time_step, s=s)
@@ -161,9 +164,9 @@ for i in xrange(NUM_EPOCHS):
         time_step += 1
         s, reward = _train_step(env, time_step, reward=reward, s=s)
 
-    if i % 1000 == 0:
-        pts[i//100] = test(render=False)
-        print(pts[i//100])
+    if i % 500 == 0:
+        pts[i//500] = test(render=False)
+        print(pts[i//500])
 
 net.save()
 
