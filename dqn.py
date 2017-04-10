@@ -16,7 +16,7 @@ matplotlib.use('AGG')
 import matplotlib.pyplot as plt
 import numpy as np
 
-NUM_EPOCHS = 30000
+NUM_EPOCHS = 100000
 DISCOUNT_FACTOR = 0.9
 GPU = True
 LOAD_NET = False
