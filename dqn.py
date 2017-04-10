@@ -11,9 +11,15 @@ import gym
 
 import random
 import matplotlib
+matplotlib.use('AGG')
+
 import matplotlib.pyplot as plt
 import numpy as np
 
+NUM_EPOCHS = 100000
+DISCOUNT_FACTOR = 0.9
+GPU = True
+LOAD_NET = False
 
 ## DQN
 class BasicNet(nn.Module):
@@ -32,28 +38,43 @@ class BasicNet(nn.Module):
 
         return x
 
-NUM_EPOCHS = 10000
-DISCOUNT_FACTOR = 0.9
+    def save(self, fname="data/model_state_dict.pkl"):
+        model = self.state_dict()
+        with open(fname, 'w') as f:
+            torch.save(model, f)
+
+    @classmethod
+    def load(self, fname="data/model_state_dict.pkl"):
+        with open(fname, 'r') as f:
+            model = torch.load(f)
+
+        new_model = BasicNet()
+        new_model.load_state_dict(model)
+        return new_model
+
 env = gym.make('CartPole-v1')
 net = BasicNet()
+if GPU:
+    net = net.cuda()
 
 optimizer = torch.optim.SGD(net.parameters(), lr=1e-2)
-
 time_step = 0
 
 ## Test stuff
 
 def np_to_var(arr):
-    return Variable(torch.Tensor(arr).view(1,-1))
+    if GPU:
+        return Variable(torch.Tensor(arr).view(1,-1)).cuda()
+    else:
+        return Variable(torch.Tensor(arr).view(1,-1))
 
 s = env.reset()
 
 ## Test Step
-import time
 def test(render=False):
     reward = 0
     s = env.reset()
-    s = Variable(torch.Tensor(s).view(1,-1))
+    s = np_to_var(s)
     done = False
     while not done:
         if render: env.render()
@@ -63,7 +84,7 @@ def test(render=False):
         act_idx = act_idx.data[0,0]
 
         s2, r, done, _ = env.step(act_idx)
-        s = Variable(torch.Tensor(s2).view(1,-1))
+        s = np_to_var(s2)
 
         reward += r
 
@@ -75,7 +96,7 @@ def _train_step(env, time_step,
                 reward=0.0, s=None, render=False, debug=False):
     if not s:
         s = env.reset()
-        s = Variable(torch.Tensor(s).view(1,-1), requires_grad=True)
+        s = np_to_var(s)
 
     if render:
         env.render()
@@ -95,7 +116,7 @@ def _train_step(env, time_step,
     reward+=r
 
     s = np_to_var(s2)
-    r = Variable(torch.Tensor([r]))
+    r = np_to_var([r])
     # Q-Learning
     if not done:
         future_q_val = net(s)
@@ -108,7 +129,7 @@ def _train_step(env, time_step,
     else:
         predicted_q = net(s)
         best_q = predicted_q.max(1)[0]
-        r = Variable(torch.Tensor([-reward*0.5-10])) # Hardcode the loss here
+        r = np_to_var([-reward*0.5-10]) # Hardcode the loss here
         if debug:
             print("Predicted: %s Actual: %s" % (best_q, r))
         loss = F.smooth_l1_loss(best_q, r)
@@ -134,15 +155,17 @@ def debug(env, time_step):
 # Plot the scores the agent gets
 pts = np.zeros(NUM_EPOCHS // 100)
 s = None
-for i in range(NUM_EPOCHS):
+for i in xrange(NUM_EPOCHS):
     s, reward = _train_step(env, time_step, s=s)
     while s is not None:
         time_step += 1
         s, reward = _train_step(env, time_step, reward=reward, s=s)
 
-    if i % 100 == 0:
-        pts[i//100] = test(render=True)
+    if i % 1000 == 0:
+        pts[i//100] = test(render=False)
         print(pts[i//100])
+
+net.save()
 
 plt.plot(np.arange(len(pts)), pts, label='Scores', color='red')
 ax = plt.axes()
