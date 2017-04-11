@@ -16,14 +16,14 @@ matplotlib.use('AGG')
 import matplotlib.pyplot as plt
 import numpy as np
 
-NUM_EPOCHS = 100000
+NUM_EPOCHS = 50000
 DISCOUNT_FACTOR = 0.9
-GPU = True
+GPU = False
 LOAD_NET = False
 
 ## DQN
 class BasicNet(nn.Module):
-    def __init__(self, shape=(4,64,2)):
+    def __init__(self, shape=(4,1024,2)):
         super(BasicNet, self).__init__()
         i, h1, o = shape
         self.linear1 = nn.Linear(i,h1)
@@ -129,7 +129,7 @@ def _train_step(env, time_step,
     else:
         predicted_q = net(s)
         best_q = predicted_q.max(1)[0]
-        if r > 499.0: # end game reached
+        if reward > 499.0: # end game reached
             r = np_to_var([10])
         else:
             r = np_to_var([-reward*0.5-10]) # Hardcode the loss here
