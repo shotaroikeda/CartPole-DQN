@@ -16,10 +16,13 @@ matplotlib.use('AGG')
 import matplotlib.pyplot as plt
 import numpy as np
 
-NUM_EPOCHS = 50000
-DISCOUNT_FACTOR = 0.9
-GPU = False
-LOAD_NET = False
+NUM_EPOCHS      = 10000 # How many iterations to run
+DISCOUNT_FACTOR = 0.9   # How much should I weigh future rewards
+GPU             = False # Use CUDA or not
+LOAD_NET        = False # Load network from previously saved
+DEMO            = False # Demo interface
+EVAL_INTERVAL   = 500   # How frequently should the training be tested
+VISUALIZE       = False # Visualize testing phase of training
 
 ## DQN
 class BasicNet(nn.Module):
@@ -52,7 +55,10 @@ class BasicNet(nn.Module):
         new_model.load_state_dict(model)
         return new_model
 
+## Set up Env
 env = gym.make('CartPole-v1')
+
+## Network Initialization
 net = BasicNet()
 if GPU:
     net = net.cuda()
@@ -106,7 +112,7 @@ def _train_step(env, time_step,
     q_vals, act_idx = q_vals_var.max(1)
     act_idx = act_idx.data[0,0]
 
-    epsilon = 99.0 / ((time_step/1000.0)+100.0)
+    epsilon = 99.0 / ((time_step/500.0)+100.0)
     if debug:
         print("Epsilon %10.5f" % (epsilon))
     if random.random() < epsilon:
@@ -154,9 +160,15 @@ def debug(env, time_step):
     print(test())
     return time_step
 
+## DEMO
+if DEMO:
+    net = BasicNet.load()
+    while True:
+        print(test(render=True))
+
 ## Randomized Agent
 # Plot the scores the agent gets
-pts = np.zeros(NUM_EPOCHS // 500)
+pts = np.zeros(NUM_EPOCHS // EVAL_INTERVAL)
 s = None
 for i in xrange(NUM_EPOCHS):
     s, reward = _train_step(env, time_step, s=s)
@@ -164,9 +176,9 @@ for i in xrange(NUM_EPOCHS):
         time_step += 1
         s, reward = _train_step(env, time_step, reward=reward, s=s)
 
-    if i % 500 == 0:
-        pts[i//500] = test(render=False)
-        print(pts[i//500])
+    if i % EVAL_INTERVAL == 0:
+        pts[i//EVAL_INTERVAL] = test(render=VISUALIZE)
+        print(pts[i//EVAL_INTERVAL])
 
 net.save()
 
